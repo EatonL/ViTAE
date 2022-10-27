@@ -4,7 +4,8 @@ from block import ReductionCell, NormalCell
 from basic_model import PositionalEncoding
 
 class ViTAE(nn.Module):
-    def __init__(self, img_size=224, in_channel=3, embed_dim=64, class_token=True, R_layers=3, N_layers=3):
+    def __init__(self, img_size=224, in_channel=3, embed_dim=64,\
+        class_token=True, R_layers=3, N_layers=3, class_num=10):
         super().__init__()
 
         self.cls = class_token
@@ -30,7 +31,13 @@ class ViTAE(nn.Module):
         for i in range(N_layers):
             self.Normallayers.add_module('{}'.format(i),\
                 NormalCell(embed_dim=embed_dim))
-            
+
+        self.head = nn.Sequential(
+            nn.Linear(embed_dim, int((embed_dim + class_num)/2)),
+            nn.Linear(int((embed_dim + class_num)/2), int((embed_dim + class_num)/2)),
+            nn.Linear(int((embed_dim + class_num)/2),class_num)
+        )
+        
     def forward(self, x):
         x = self.Reductionlayers(x)
         x = self.PE(x)
@@ -39,6 +46,7 @@ class ViTAE(nn.Module):
             x = x[:, 0]
         else:
             x.mean(dim=1)
+        x = self.head(x)
         return x
 
 if __name__ == '__main__':
